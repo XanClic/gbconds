@@ -1,0 +1,107 @@
+#!/bin/bash
+
+check_availability()
+{
+    for pth in $(echo $PATH | sed -e "s/:/ /g"); do
+        if [ -x $pth/$1 ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+guess()
+{
+    for prog in arm-$OSTYPE-$1 arm-linux-$1 arm-elf-$1 arm-$1; do
+        if check_availability $prog; then
+            echo $prog
+            return 0
+        fi
+    done
+
+    echo "Could not guess name of ARM $2." >&2
+    echo "Please specify a $2 via \$$3." >&2
+    return 1
+}
+
+has_help=false
+do_cross=false
+
+for arg in $@; do
+    case $arg in
+        --help | -h | -?)
+            has_help=true
+            ;;
+        --cross)
+            do_cross=true
+            ;;
+    esac
+done
+
+if [ $has_help == true ]; then
+    echo "Usage: ./configure [OPTION]... [VAR=VALUE]..."
+    echo
+    echo "To assign environment variables (e.g., CXX, CXXFLAGS), specify them as"
+    echo "VAR=VALUE. See below for description of the useful variables."
+    echo
+    echo "Defaults for the options are specified in brackets."
+    echo
+    echo "Influential environment variables:"
+    echo "  CC          ARM C compiler command"
+    echo "  CFLAGS      ARM C compiler flags"
+    echo "  ASM         ARM assembler command"
+    echo "  ASMFLAGS    ARM assembler flags"
+    echo "  OCP         ARM objcopy command"
+    echo "  LINK        linker command"
+    echo "  LFLAGS      linker flags"
+    exit
+fi
+
+echo -n "Determining ARM C compiler... "
+if [ "$CC" == "" ]; then
+    if ! CC=$(guess gcc "C compiler" CC); then exit 1; fi
+fi
+echo $CC
+
+if [ "$CFLAGS" == "" ]; then
+    CFLAGS="-O3 -Wall -Wextra -pedantic -std=c1x -ffreestanding -nodefaultlibs -nostdinc -nostartfiles \\\"-I$(pwd)/src/include\\\""
+fi
+
+echo -n "Determining ARM linker... "
+if [ "$LINK" == "" ]; then
+    if ! LINK=$(guess ld linker LINK); then exit 1; fi
+fi
+echo $LINK
+
+echo -n "Determining ARM assembler... "
+if [ "$ASM" == "" ]; then
+    if ! ASM=$(guess as assembler ASM); then exit 1; fi
+fi
+echo $ASM
+
+if [ "$ASMFLAGS" == "" ]; then
+    ASMFLAGS="-EL -mlittle-endian -mapcs-32"
+fi
+
+echo -n "Determining ARM objcopy... "
+if [ "$OCP" == "" ]; then
+    if ! OCP=$(guess objcopy objcopy OCP); then exit 1; fi
+fi
+echo $OCP
+
+echo
+echo -n 'Generating build.sh "include"... '
+
+echo -e "export MY_CC=\"$CC\"" > build.inc
+echo -e "export CFLAGS=\"$CFLAGS\"" >> build.inc
+echo -e "export MY_AS=\"$ASM\"" >> build.inc
+echo -e "export ASFLAGS=\"$ASMFLAGS\"" >> build.inc
+echo -e "export MY_LINK=\"$LINK\"" >> build.inc
+echo -e "export OCP=\"$OCP\"" >> build.inc
+
+echo >> build.inc
+echo "./build.sh yay" >> build.inc
+
+echo "Done"
+
