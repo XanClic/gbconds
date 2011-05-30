@@ -12,9 +12,6 @@ void generate_interrupts(void)
     if (!main_int_flag || !cause)
         return;
 
-    main_int_flag = false;
-    push(fr_ip.f);
-
     if (cause & INT_P10_P13) // Hi-Lo of P10-P13
         cause = 4;
     else if (cause & INT_SERIAL) // Serial transfer completed
@@ -27,6 +24,9 @@ void generate_interrupts(void)
         cause = 0;
     else
         return;
+
+    main_int_flag = false;
+    push(fr_ip.f);
 
     interrupt_issued = true;
 

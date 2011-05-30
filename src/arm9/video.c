@@ -6,6 +6,8 @@
 #include <video.h>
 
 #define DISP (VRAM_1 + 144 * 256 * 2)
+#define DISP_W 256
+#define DISP_H 48
 
 extern const void _binary_font_npf_start, _binary_font_npf_end;
 
@@ -48,8 +50,8 @@ void init_video(void)
     if (fw > 8)
         for (;;);
 
-    tw = 256 / fw;
-    th = 48 / fh;
+    tw = DISP_W / fw;
+    th = DISP_H / fh;
 
     charsz = ((fw + 7) / 8) * fh + sizeof(uint32_t);
 
@@ -305,6 +307,16 @@ void kprintf(const char *s, ...)
                         for (int i = 0; i < 4; i++)
                         {
                             putc((num >> 12) + ((num >> 12) < 10 ? '0' : 'A' - 10));
+                            num <<= 4;
+                        }
+                        break;
+                    }
+                    case 'v':
+                    {
+                        uint16_t num = va_arg(va, unsigned);
+                        for (int i = 0; i < 4; i++)
+                        {
+                            putc((num >> 12) + ((num >> 12) < 10 ? '0' : 'a' - 10));
                             num <<= 4;
                         }
                         break;

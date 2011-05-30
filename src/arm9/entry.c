@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <video.h>
 
-extern unsigned rom_size;
+extern unsigned rom_size, ram_size;
+extern uintptr_t rom_base, ram_base;
 extern union reg fr_af, fr_bc, fr_de, fr_hl, fr_sp, fr_ip;
 
 int main(void)
@@ -32,7 +33,7 @@ int main(void)
 
     kputs("OK\n");
 
-    kprintf("(%i kB ROM)\n", rom_size * 16);
+    kprintf("(%i kB ROM ab %p, %i kB RAM ab %p)\n", rom_size * 16, rom_base, ram_size * 2, ram_base);
 
     kputs("Starte Ausführung.\n");
 

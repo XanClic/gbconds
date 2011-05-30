@@ -12,7 +12,7 @@
 #define h(o, f) [o] = &__op_handler_##f
 #define hf(f) static void __op_handler_##f(void)
 
-extern const int cycles[256], cycles0xCB[256];
+extern const uint8_t cycles[256], cycles0xCB[256];
 extern const uint16_t daa_table[2048];
 extern bool interrupt_issued, main_int_flag, has_cgb;
 
@@ -42,27 +42,8 @@ union reg fr_af, fr_bc, fr_de, fr_hl, fr_sp, fr_ip;
 #include <gen-operations.h>
 #include "operations.h"
 
-void execute(void)
+void init_env(void)
 {
-    if (has_cgb)
-    {
-        r_ip = 0x0100;
-        r_sp = 0xFFFE;
-        r_af = 0x11B0;
-        r_bc = 0x0000;
-        r_de = 0xFF56;
-        r_hl = 0x000D;
-    }
-    else
-    {
-        r_ip = 0x0100;
-        r_sp = 0xFFFE;
-        r_af = 0x01B0;
-        r_bc = 0x0013;
-        r_de = 0x00D8;
-        r_hl = 0x014D;
-    }
-
     io_regs->sb = 0xFF;
     io_regs->sc = 0x00;
     io_regs->tima = 0x00;
@@ -104,12 +85,36 @@ void execute(void)
     bwtd[1] = (uint8_t *)0x02302000;
     wtm[0] = (uint8_t *)0x02301800;
     wtm[1] = (uint8_t *)0x02303800;
+}
 
-    unsigned cycles_gone;
+void c_execute(void)
+{
+    if (has_cgb)
+    {
+        r_ip = 0x0100;
+        r_sp = 0xFFFE;
+        r_af = 0x11B0;
+        r_bc = 0x0000;
+        r_de = 0xFF56;
+        r_hl = 0x000D;
+    }
+    else
+    {
+        r_ip = 0x0100;
+        r_sp = 0xFFFE;
+        r_af = 0x01B0;
+        r_bc = 0x0013;
+        r_de = 0x00D8;
+        r_hl = 0x014D;
+    }
+
+    init_env();
+
+    unsigned cycles_gone = 0;
 
     for (;;)
     {
-        // kprintf("%V %V %V %V %V %V\n", r_ip, r_af, r_bc, r_de, r_hl, r_sp);
+        // kprintf("PC=%v AF=%v BC=%v DE=%v HL=%v SP=%v %i\n", r_ip, r_af, r_bc, r_de, r_hl, r_sp, cycles_gone);
 
         uint8_t op = mem_read8(r_ip++);
 
@@ -121,7 +126,7 @@ void execute(void)
 
         handle[op]();
 
-        cycles_gone += (op == 0xCB) ? cycles0xCB[mem_read8(r_ip)] : cycles[op];
+        cycles_gone += (op == 0xCB) ? cycles0xCB[mem_read8(r_ip - 1)] : cycles[op];
         if (cycles_gone >= CYCLE_STEP)
         {
             update_timer(cycles_gone);

@@ -189,7 +189,7 @@ hf(rra)
 hf(cpl_a)
 {
     r_a ^= 0xFF;
-    r_f = FLAG_SUB | FLAG_HCRY;
+    r_f |= FLAG_SUB | FLAG_HCRY;
 }
 
 hf(daa)
@@ -418,9 +418,8 @@ hf(add_a_a)
             r_f = FLAG_CRY;
         else
             r_f = 0;
+
         if (r_a & 0x08)
-            r_f |= FLAG_HCRY;
-        else
             r_f |= FLAG_HCRY;
 
         r_a <<= 1;

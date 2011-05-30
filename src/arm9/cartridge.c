@@ -7,6 +7,10 @@
 bool has_cgb, ext_ram, batt, rtc, rmbl;
 unsigned mbc, rom_size, ram_size;
 
+extern uintptr_t rom_base, ram_base, areas[16];
+
+extern const void _binary_rom_gbc_start;
+
 #define CART_TYPE(id, mbctype, extram, battery, timer, rumble) \
     case id: \
         mbc = mbctype; \
@@ -16,11 +20,9 @@ unsigned mbc, rom_size, ram_size;
         rmbl = rumble; \
         break;
 
-bool load_rom(void)
+static bool try_load_rom(uintptr_t base)
 {
-    vw16(IO, 0x204, vr16(IO, 0x204) & ~(1 << 7));
-
-    uint8_t *rom = (uint8_t *)0x08000000;
+    uint8_t *rom = (uint8_t *)base;
 
     uint8_t check = 0;
     for (size_t off = 0x134; off <= 0x14C; off++)
@@ -97,4 +99,25 @@ bool load_rom(void)
     }
 
     return true;
+}
+
+bool load_rom(void)
+{
+    vw16(IO, 0x204, vr16(IO, 0x204) & ~(1 << 7));
+
+    if (try_load_rom(rom_base))
+        return true;
+
+    if (try_load_rom((uintptr_t)&_binary_rom_gbc_start))
+    {
+        rom_base = (uintptr_t)&_binary_rom_gbc_start;
+        ram_base = 0x022E0000;
+        for (unsigned i = 0; i < 8; i++)
+            areas[i] = rom_base + i * 4096;
+        areas[0xA] = 0x022E0000;
+        areas[0xB] = 0x022E1000;
+        return true;
+    }
+
+    return false;
 }

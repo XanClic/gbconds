@@ -39,6 +39,8 @@ void hdma_copy_16b(void)
         generate_interrupts();
 }
 
+extern bool main_int_flag, interrupt_issued;
+
 void update_timer(unsigned cycles_gone)
 {
     static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
