@@ -7,11 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#ifdef REAL_CARTRIDGE
-#define RAM_BASE 0x02200000
-#else
-#define RAM_BASE 0x0A000000
-#endif
+uintptr_t rom_base = 0x08000000, ram_base = 0x0A000000;
 
 uintptr_t areas[16] = {
     0x08000000, // ROM-Bank 0
@@ -24,8 +20,8 @@ uintptr_t areas[16] = {
     0x08007000,
     0x02300000, // VRAM-Bank 0
     0x02301000,
-    RAM_BASE + 0x0000, // RAM-Bank 0
-    RAM_BASE + 0x1000,
+    0x0A000000, // RAM-Bank 0
+    0x0A001000,
     0x03000000, // WRAM-Bank 0
     0x03001000, // WRAM-Bank 1
     0x03000000, // WRAM-Bank 0
@@ -52,41 +48,10 @@ bool may_write[16] = {
 };
 
 static int cramb = 0, cromb = 1;
-static bool ram_enabled = false, ram_mapped;
+static bool ram_enabled = false;
 static unsigned latched_time;
 
 extern unsigned mbc;
-
-uint8_t mem_read8(uint16_t addr)
-{
-    unsigned ix = addr >> 12;
-    addr &= 0xFFF;
-
-    if (areas[ix])
-        return *(uint8_t *)(areas[ix] + addr);
-
-    if (addr < 0xE00)
-        return *(uint8_t *)(areas[0xD] + addr);
-
-    return *(uint8_t *)(DTCM + (addr & 0x1FF)); // OAM/HRAM/IO
-}
-
-uint16_t mem_read16(uint16_t addr)
-{
-    if (addr & 1)
-        return mem_read8(addr) | (mem_read8(addr + 1) << 8);
-
-    unsigned ix = addr >> 12;
-    addr &= 0xFFF;
-
-    if (areas[ix])
-        return *(uint16_t *)(areas[ix] + addr);
-
-    if (addr < 0xE00)
-        return *(uint16_t *)(areas[0xD] + addr);
-
-    return *(uint16_t *)(DTCM + (addr & 0x1FF));
-}
 
 static void mbc3_rom_write(unsigned off, uint8_t val)
 {
@@ -100,36 +65,52 @@ static void mbc3_rom_write(unsigned off, uint8_t val)
             else if (val == 0x0A)
             {
                 ram_enabled = true;
-                if ((cramb < 4) && !ram_mapped)
+                if (cramb >= 4)
                 {
-                    areas[0xA] = RAM_BASE + cramb * 0x2000;
-                    areas[0xB] = RAM_BASE + cramb * 0x2000 + 0x1000;
+                    areas[0xA] = areas[0xB] = 0;
+                    may_write[0xA] = may_write[0xB] = false;
+                }
+                else
+                {
+                    areas[0xA] = ram_base + cramb * 0x2000 + 0x0000;
+                    areas[0xB] = ram_base + cramb * 0x2000 + 0x1000;
+                    may_write[0xA] = may_write[0xB] = true;
                 }
             }
             break;
         case 0x2000:
-#ifdef REAL_CARTRIDGE
-            // Bei einer echten GBC-Cartridge wäre der MBC integriert
-            *(uint8_t *)0x08002000 = val;
-#else
             cromb = val ? val : 1;
-            areas[4] = 0x08000000 + cromb * 0x4000;
-            areas[5] = 0x08001000 + cromb * 0x4000;
-            areas[6] = 0x08002000 + cromb * 0x4000;
-            areas[7] = 0x08003000 + cromb * 0x4000;
-#endif
+            areas[4] = rom_base + cromb * 0x4000 + 0x0000;
+            areas[5] = rom_base + cromb * 0x4000 + 0x1000;
+            areas[6] = rom_base + cromb * 0x4000 + 0x2000;
+            areas[7] = rom_base + cromb * 0x4000 + 0x3000;
             break;
         case 0x4000:
             if (val >= 8)
+            {
                 cramb = val;
-            else if ((val < 4) && (cramb != val))
+                areas[0xA] = areas[0xB] = 0;
+                may_write[0xA] = may_write[0xB] = false;
+            }
+            else if (val < 4)
             {
                 cramb = val;
                 if (ram_enabled)
                 {
-                    areas[0xA] = RAM_BASE + cramb * 0x2000;
-                    areas[0xB] = RAM_BASE + cramb * 0x2000 + 0x1000;
+                    areas[0xA] = ram_base + cramb * 0x2000 + 0x0000;
+                    areas[0xB] = ram_base + cramb * 0x2000 + 0x1000;
+                    may_write[0xA] = may_write[0xB] = true;
                 }
+                else
+                {
+                    areas[0xA] = areas[0xB] = 0;
+                    may_write[0xA] = may_write[0xB] = false;
+                }
+            }
+            else
+            {
+                areas[0xA] = areas[0xB] = 0;
+                may_write[0xA] = may_write[0xB] = false;
             }
             break;
         case 0x6000:
@@ -157,8 +138,6 @@ static void mbc3_ram_write(unsigned off, uint8_t val)
         kputs("[mbc3] Versuch, nicht aktivierten RAM zu beschreiben.\n");
         return;
     }
-
-    kprintf("[mbc3] Ignoriere geschriebenen Zeitwert 0x%X ins Register %i.\n", val, cramb);
 }
 
 static uint8_t mbc3_ram_read(unsigned off)
@@ -199,8 +178,34 @@ static void (*const ram_write[6])(unsigned off, uint8_t val) = {
     [3] = &mbc3_ram_write
 };
 
+uint8_t eram_read8(unsigned off)
+{
+    if (ram_read[mbc] == NULL)
+    {
+        kprintf("[mem] RAM-Lesezugriff ohne RAM von 0x%V.\n", off);
+        gbc_panic();
+    }
+
+    return ram_read[mbc](off);
+}
+
+void eram_write8(unsigned off, uint8_t val)
+{
+    if (ram_write[mbc] == NULL)
+    {
+        kprintf("[mem] RAM-Schreibzugriff ohne RAM von 0x%X auf 0x%V.\n", val, off);
+        gbc_panic();
+    }
+
+    ram_write[mbc](off, val);
+}
+
 void rom_write8(unsigned off, uint8_t val)
 {
+#ifdef GBC_CARTRIDGE
+    // Bei einer echten Cartridge macht das der GBC
+    *(uint8_t *)(rom_base + off) = val;
+#else
     if (rom_write[mbc] == NULL)
     {
         kprintf("[mem] ROM-Schreibzugriff (0x%X) auf 0x%V.\n", val, off);
@@ -208,6 +213,49 @@ void rom_write8(unsigned off, uint8_t val)
     }
 
     rom_write[mbc](off, val);
+#endif
+}
+
+uint8_t mem_read8(uint16_t addr)
+{
+    unsigned ix = addr >> 12;
+    addr &= 0xFFF;
+
+    if (areas[ix])
+        return *(uint8_t *)(areas[ix] + addr);
+
+    if (ix != 15)
+        return eram_read8(addr | ((ix & 1) << 12));
+    else
+    {
+        if (addr < 0xE00)
+            return *(uint8_t *)(areas[0xD] + addr);
+        return *(uint8_t *)(DTCM + (addr & 0x1FF)); // OAM/HRAM/IO
+    }
+}
+
+uint16_t mem_read16(uint16_t addr)
+{
+    if (addr & 1)
+        return mem_read8(addr) | (mem_read8(addr + 1) << 8);
+
+    unsigned ix = addr >> 12;
+    addr &= 0xFFF;
+
+    if (areas[ix])
+        return *(uint16_t *)(areas[ix] + addr);
+
+    if (ix != 15)
+    {
+        addr |= (ix & 1) << 12;
+        return eram_read8(addr) | (eram_read8(addr + 1) << 8);
+    }
+    else
+    {
+        if (addr < 0xE00)
+            return *(uint16_t *)(areas[0xD] + addr);
+        return *(uint16_t *)(DTCM + (addr & 0x1FF));
+    }
 }
 
 void mem_write8(uint16_t addr, uint8_t val)
@@ -220,9 +268,14 @@ void mem_write8(uint16_t addr, uint8_t val)
         return;
     }
 
-    if (addr < 0x8000)
+    if (ix < 8)
     {
         rom_write8(addr, val);
+        return;
+    }
+    else if (ix < 12)
+    {
+        eram_write8(addr - 0xA000, val);
         return;
     }
 
@@ -253,10 +306,16 @@ void mem_write16(uint16_t addr, uint16_t val)
         return;
     }
 
-    if (addr < 0x8000)
+    if (ix < 8)
     {
         rom_write8(addr, val & 0xFF);
         rom_write8(addr + 1, val >> 8);
+        return;
+    }
+    else if (ix < 12)
+    {
+        eram_write8(addr - 0xA000, val & 0xFF);
+        eram_write8(addr - 0x9FFF, val >> 8);
         return;
     }
 

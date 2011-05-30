@@ -80,10 +80,6 @@ if [ "$ASM" == "" ]; then
 fi
 echo $ASM
 
-if [ "$ASMFLAGS" == "" ]; then
-    ASMFLAGS="-EL -mlittle-endian -mapcs-32"
-fi
-
 echo -n "Determining ARM objcopy... "
 if [ "$OCP" == "" ]; then
     if ! OCP=$(guess objcopy objcopy OCP); then exit 1; fi

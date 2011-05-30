@@ -114,7 +114,7 @@ hf(add_a_##ar) \
 { \
     uint8_t rval = reg; \
     uint16_t result = (uint16_t)(r_a + rval); \
-    r_f = ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
+    r_f = ((result & 0x100U) >> (8 - FS_CRY)) | (!(result & 0xFF) << FS_ZERO); \
     if ((r_a & 0xF) + (rval & 0xF) > 0xF) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
@@ -131,7 +131,7 @@ hf(adc_a_##ar) \
     uint8_t rval = reg; \
     int cry = (r_f & FLAG_CRY) >> FS_CRY; \
     uint16_t result = (uint16_t)(r_a + rval + cry); \
-    r_f = ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
+    r_f = ((result & 0x100U) >> (8 - FS_CRY)) | (!(result & 0xFF) << FS_ZERO); \
     if ((r_a & 0xF) + (rval & 0xF) + cry > 0xF) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
@@ -147,7 +147,7 @@ hf(sub_a_##ar) \
 { \
     uint8_t rval = reg; \
     uint16_t result = (uint16_t)(r_a - rval); \
-    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
+    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!(result & 0xFF) << FS_ZERO); \
     if (((r_a & 0xFU) - (rval & 0xFU)) & 0x10U) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
@@ -164,7 +164,7 @@ hf(sbc_a_##ar) \
     uint8_t rval = reg; \
     int cry = (r_f & FLAG_CRY) >> FS_CRY; \
     uint16_t result = (uint16_t)(r_a - rval - cry); \
-    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
+    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!(result & 0xFF) << FS_ZERO); \
     if (((r_a & 0xFU) - (rval & 0xFU) - (unsigned)cry) & 0x10U) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
@@ -180,7 +180,7 @@ hf(cp_a_##ar) \
 { \
     uint8_t rval = reg; \
     uint16_t result = (uint16_t)(r_a - rval); \
-    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
+    r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!(result & 0xFF) << FS_ZERO); \
     if (((r_a & 0xFU) - (rval & 0xFU)) & 0x10U) \
         r_f |= FLAG_HCRY; \
 }
