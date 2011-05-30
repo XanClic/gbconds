@@ -1,7 +1,9 @@
 #include <cpu.h>
+#include <gbclcd.h>
 #include <io.h>
 #include <ipc.h>
 #include <irq.h>
+#include <mem.h>
 #include <rom.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -21,6 +23,8 @@ int main(void)
     ipc_init();
     ipc_sync();
 
+    init_vm_memory();
+
     kputs("GBConDS initialisiert.\n");
 
     kputs("Suche nach Game-Boy-ROM... ");
@@ -37,6 +41,7 @@ int main(void)
 
     kputs("Starte Ausführung.\n");
 
+    init_gbc_lcd();
     execute();
 
     kputs("Ausführung beendet:\n");

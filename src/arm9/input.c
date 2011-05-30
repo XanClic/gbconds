@@ -1,1 +1,0 @@
-unsigned keystates = 0;

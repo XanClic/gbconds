@@ -509,7 +509,7 @@ bx      r14
 #define dec_rr(vmr, armr) \
     op_dec_##vmr: \
     subs    armr,#1; \
-    movcc   armr,armr,lsr #16 /* armr == 0xFFFFFFFF */; \
+    movcc   armr,armr,lsr #16; /* armr == 0xFFFFFFFF */ \
     bx      r14
 
 #define inc_rh(vmr, armr) \
@@ -1620,7 +1620,7 @@ bl      mem_read8
 add     r8,#1
 mov     r2,r0,lsl #24
 eor     r0,r9,r2,asr #24
-add     r7,r2,asr #24
+add     r7,r9,r2,asr #24
 and     r4,#0xFF00
 cmp     r7,#0x10000
 orrcs   r4,#FLAG_CRY
@@ -1924,11 +1924,10 @@ b       mem_write8
 
 #define rrc_rh(vmr, armr) \
     op_rrc_##vmr: \
-    mov     r0,armr,lsr #9; \
-    tst     armr,#0x100; \
+    movs    r0,armr,lsr #9; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
-    orrne   r0,#0x80; \
+    orrcs   r4,#FLAG_CRY; \
+    orrcs   r0,#0x80; \
     tsteq   r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0x00FF; \
@@ -1937,12 +1936,11 @@ b       mem_write8
 
 #define rrc_rl(vmr, armr) \
     op_rrc_##vmr: \
-    mov     r0,armr,lsr #1; \
-    tst     armr,#0x01; \
+    movs    r0,armr,lsr #1; \
     and     r0,#0x7F; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
-    orrne   r0,#0x80; \
+    orrcs   r4,#FLAG_CRY; \
+    orrcs   r0,#0x80; \
     tsteq   r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0xFF00; \
@@ -2027,12 +2025,11 @@ b       mem_write8
 
 #define rr_rh(vmr, armr) \
     op_rr_##vmr: \
-    mov     r0,armr,lsr #9; \
-    tst     armr,#0x100; \
+    movs    r0,armr,lsr #9; \
     and     r1,r4,#FLAG_CRY; \
-    orr     r0,r1,lsl #8 - FS_CRY; \
+    orr     r0,r1,lsl #7 - FS_CRY; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     tst     r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0x00FF; \
@@ -2041,13 +2038,12 @@ b       mem_write8
 
 #define rr_rl(vmr, armr) \
     op_rr_##vmr: \
-    mov     r0,armr,lsr #1; \
-    tst     armr,#0x01; \
+    movs    r0,armr,lsr #1; \
     and     r0,#0x7F; \
     and     r1,r4,#FLAG_CRY; \
-    orr     r0,r1,lsl #8 - FS_CRY; \
+    orr     r0,r1,lsl #7 - FS_CRY; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     tst     r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0xFF00; \
@@ -2065,13 +2061,12 @@ rr_rl(l, r7)
 op_rr__hl:
 mov     r0,r7
 bl      mem_read8
-tst     r0,#0x01
 and     r0,#0xFE
 and     r2,r4,#FLAG_CRY
 orr     r0,r2,lsl #8 - FS_CRY
 and     r4,#0xFF00
-orrne   r4,#FLAG_CRY
 movs    r1,r0,lsr #1
+orrcs   r4,#FLAG_CRY
 orreq   r4,#FLAG_ZERO
 mov     r0,r7
 ldmia   r13!,{r14}
@@ -2125,10 +2120,9 @@ b       mem_write8
 #define sra_rh(vmr, armr) \
     op_sra_##vmr: \
     mov     r0,armr,lsl #16; \
-    mov     r0,r0,asr #25; \
-    tst     armr,#0x100; \
+    movs    r0,r0,asr #25; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     ands    r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0x00FF; \
@@ -2138,10 +2132,9 @@ b       mem_write8
 #define sra_rl(vmr, armr) \
     op_sra_##vmr: \
     mov     r0,armr,lsl #24; \
-    mov     r0,r0,asr #25; \
-    tst     armr,#0x01; \
+    movs    r0,r0,asr #25; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     ands    r0,#0xFF; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0xFF00; \
@@ -2159,11 +2152,10 @@ sra_rl(l, r7)
 op_sra__hl:
 mov     r0,r7
 bl      mem_read8
-tst     r0,#0x01
 and     r4,#0xFF00
-orrne   r4,#FLAG_CRY
 mov     r1,r0,lsl #24
-mov     r1,r1,asr #25
+movs    r1,r1,asr #25
+orrcs   r4,#FLAG_CRY
 ands    r1,#0xFF
 orreq   r4,#FLAG_ZERO
 mov     r0,r7
@@ -2172,10 +2164,9 @@ b       mem_write8
 
 #define srl_rh(vmr, armr) \
     op_srl_##vmr: \
-    mov     r0,armr,lsr #9; \
-    tst     armr,#0x100; \
+    movs    r0,armr,lsr #9; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     ands    r0,#0x7F; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0x00FF; \
@@ -2184,10 +2175,9 @@ b       mem_write8
 
 #define srl_rl(vmr, armr) \
     op_srl_##vmr: \
-    mov     r0,armr,lsr #1; \
-    tst     armr,#0x01; \
+    movs    r0,armr,lsr #1; \
     and     r4,#0xFF00; \
-    orrne   r4,#FLAG_CRY; \
+    orrcs   r4,#FLAG_CRY; \
     ands    r0,#0x7F; \
     orreq   r4,#FLAG_ZERO; \
     and     armr,#0xFF00; \

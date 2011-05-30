@@ -204,7 +204,7 @@ hf(scf)
 
 hf(ccf)
 {
-    r_f = (r_f & FLAG_ZERO) | (r_f ^ FLAG_CRY);
+    r_f = (r_f & FLAG_ZERO) | ((r_f & FLAG_CRY) ^ FLAG_CRY);
 }
 
 /// LD ??, nn
@@ -423,6 +423,9 @@ hf(add_a_a)
             r_f |= FLAG_HCRY;
 
         r_a <<= 1;
+
+        if (!r_a)
+            r_f |= FLAG_ZERO;
     }
 }
 

@@ -9,49 +9,37 @@
 
 uintptr_t rom_base = 0x08000000, ram_base = 0x0A000000;
 
-uintptr_t areas[16] = {
-    0x08000000, // ROM-Bank 0
-    0x08001000,
-    0x08002000,
-    0x08003000,
-    0x08004000, // ROM-Bank 1
-    0x08005000,
-    0x08006000,
-    0x08007000,
-    0x02300000, // VRAM-Bank 0
-    0x02301000,
-    0x0A000000, // RAM-Bank 0
-    0x0A001000,
-    0x03000000, // WRAM-Bank 0
-    0x03001000, // WRAM-Bank 1
-    0x03000000, // WRAM-Bank 0
-    0, // Highmem
-};
-
-bool may_write[16] = {
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    true,
-    false
-};
+extern uintptr_t areas[16];
+extern bool may_write[16];
 
 static int cramb = 0, cromb = 1;
 static bool ram_enabled = false;
 static unsigned latched_time;
 
 extern unsigned mbc;
+
+void init_vm_memory(void)
+{
+    areas[0x0] = 0x08000000; // ROM-Bank 0
+    areas[0x1] = 0x08001000;
+    areas[0x2] = 0x08002000;
+    areas[0x3] = 0x08003000;
+    areas[0x4] = 0x08004000; // ROM-Bank 1
+    areas[0x5] = 0x08005000;
+    areas[0x6] = 0x08006000;
+    areas[0x7] = 0x08007000;
+    areas[0x8] = 0x02300000; // VRAM-Bank 0
+    areas[0x9] = 0x02301000;
+    areas[0xA] = 0x0A000000; // RAM-Bank 0
+    areas[0xB] = 0x0A001000;
+    areas[0xC] = 0x03000000; // WRAM-Bank 0
+    areas[0xD] = 0x03001000; // WRAM-Bank 1
+    areas[0xE] = 0x03000000; // WRAM-Bank 0
+    areas[0xF] = 0;          // Highmem
+
+    may_write[0x0] = may_write[0x1] = may_write[0x2] = may_write[0x3] = may_write[0x4] = may_write[0x5] = may_write[0x6] = may_write[0x7] = may_write[0xF] = false;
+    may_write[0x8] = may_write[0x9] = may_write[0xA] = may_write[0xB] = may_write[0xC] = may_write[0xD] = may_write[0xE] = true;
+}
 
 static void mbc3_rom_write(unsigned off, uint8_t val)
 {

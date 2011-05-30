@@ -82,7 +82,7 @@ void init_video(void)
 
 void cls(rgb_t color)
 {
-    memsetptr((void *)DISP, color | (color << 16), 0x8000);
+    memsetptr((void *)DISP, color | (color << 16), DISP_W * DISP_H / 2);
 }
 
 void term_putc(unsigned x, unsigned y, unsigned unicode)
@@ -119,7 +119,6 @@ void term_putc(unsigned x, unsigned y, unsigned unicode)
 
 static void scroll_up(void)
 {
-    // FIXME: memmove
     uint32_t *src = (uint32_t *)(DISP + 256 * fh * 2);
     uint32_t *dst = (uint32_t *)DISP;
     uint32_t count = 256 * (th - 1) * fh / 2;

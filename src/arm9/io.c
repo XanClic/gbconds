@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-bool hdma_on = false;
+extern bool hdma_on;
 
 extern uintptr_t areas[16];
 extern bool has_cgb, lcd_on;
