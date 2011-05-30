@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define CYCLE_STEP 16
 #define HALT_CYCLE_STEP 32
@@ -12,14 +13,17 @@
 #define h(o, f) [o] = &__op_handler_##f
 #define hf(f) static void __op_handler_##f(void)
 
-extern const uint8_t cycles[256], cycles0xCB[256];
 extern const uint16_t daa_table[2048];
 extern bool interrupt_issued, main_int_flag, has_cgb;
 
 extern uint16_t bpalette[32], opalette[32];
 extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 
-union reg fr_af, fr_bc, fr_de, fr_hl, fr_sp, fr_ip;
+extern union reg fr_af, fr_bc, fr_de, fr_hl, fr_sp, fr_ip;
+
+extern uint8_t cycles[256], cycles0xCB[256];
+extern uint8_t cycle_src[256], cycle_src0xCB[256];
+extern bool hdma_on;
 
 #define r_af fr_af.f
 #define r_bc fr_bc.f
@@ -85,6 +89,11 @@ void init_env(void)
     bwtd[1] = (uint8_t *)0x02302000;
     wtm[0] = (uint8_t *)0x02301800;
     wtm[1] = (uint8_t *)0x02303800;
+
+    memcpy(cycles, cycle_src, sizeof(cycle_src));
+    memcpy(cycles0xCB, cycle_src0xCB, sizeof(cycle_src0xCB));
+
+    hdma_on = false;
 }
 
 void c_execute(void)

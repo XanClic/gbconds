@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-const uint8_t cycles[256] =
+const uint8_t cycle_src[256] =
 {
     1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
     1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
@@ -20,7 +20,7 @@ const uint8_t cycles[256] =
     3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4
 };
 
-const uint8_t cycles0xCB[256] =
+const uint8_t cycle_src0xCB[256] =
 {
     2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
     2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,

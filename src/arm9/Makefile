@@ -13,11 +13,11 @@ all: ../arm9elf
 ifeq ("$(GBC_ROM)", "")
 ../arm9elf: $(OBJECTFILES)
 	$(ECHO) "LINK    >$@"
-	$(MY_LINK) -e _start -Ttext 0x02000000 -n -L$(shell $(MY_CC) -print-libgcc-file-name | sed -e 's/\(.*\)\/\(.*\)/\1/') $^ -o $@ -lgcc
+	$(MY_LINK) -e _start -T link.ld -n -L$(shell $(MY_CC) -print-libgcc-file-name | sed -e 's/\(.*\)\/\(.*\)/\1/') $^ -o $@ -lgcc
 else
 ../arm9elf: $(OBJECTFILES) gbc_rom.o
 	$(ECHO) "LINK    >@"
-	$(MY_LINK) -e _start -Ttext 0x02000000 -n -L$(shell $(MY_CC) -print-libgcc-file-name | sed -e 's/\(.*\)\/\(.*\)/\1/') $^ -o $@ -lgcc
+	$(MY_LINK) -e _start -T link.ld -n -L$(shell $(MY_CC) -print-libgcc-file-name | sed -e 's/\(.*\)\/\(.*\)/\1/') $^ -o $@ -lgcc
 
 gbc_rom.o: rom.gbc
 	$(ECHO) "OCP     $<"

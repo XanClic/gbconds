@@ -5,16 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 
-bool lcd_on = true;
-uint16_t bpalette[32], opalette[32];
-uint8_t *btm[2] = { NULL }, *bwtd[2] = { NULL }, *wtm[2] = { NULL };
+extern bool lcd_on;
+extern uint16_t bpalette[32], opalette[32];
+extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 
 extern bool has_cgb;
 
-// #define DISPLAY_ALL
-
-int frameskip_skip = 3, frameskip_draw = 1;
-static int frameskip_draw_i = 0, frameskip_skip_i = 0, skip_this = 0;
+extern int frameskip_skip, frameskip_draw;
+extern int frameskip_draw_i, frameskip_skip_i, skip_this;
 
 static void draw_bg_line(int line, int o_line, int bit7val, int window)
 {
@@ -96,11 +94,7 @@ static void draw_bg_line(int line, int o_line, int bit7val, int window)
 void draw_line(int line)
 {
     if (!lcd_on)
-    {
-        /*if (line == 143)
-            os_handle_events();*/
         return;
-    }
 
     if (skip_this && (line < 143))
         return;
@@ -132,7 +126,7 @@ void draw_line(int line)
         uint8_t num;
         uint8_t flags;
     } __attribute__((packed)) *oam = (void *)DTCM;
-    int sx = io_regs->scx, sy = io_regs->scy;
+    int sy = io_regs->scy;
     int abs_line = (line + sy) & 0xFF;
     int window_active = ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= line));
 
@@ -143,7 +137,7 @@ void draw_line(int line)
 
     if (window_active)
     {
-        int wx = io_regs->wx + sx - 7, wy = io_regs->wy;
+        int wx = io_regs->wx - 7, wy = io_regs->wy;
         int yoff = line - wy;
         int by = yoff & 0xF8, ry = yoff & 0x07;
         int tile = by * 4;
@@ -284,44 +278,15 @@ void draw_line(int line)
 
     if ((io_regs->lcdc & (1 << 0)) && has_cgb)
         draw_bg_line(abs_line, line, 1 << 7, window_active);
-
-    if (line == 143)
-    {
-        // os_handle_events();
-
-        #ifdef DISPLAY_ALL
-        for (int rem = 144; rem < 256; rem++)
-            draw_line(rem);
-        #endif
-    }
 }
 
-void increase_frameskip(void)
+void init_gbc_lcd(void)
 {
-    if (!frameskip_skip)
-        frameskip_skip = 1;
-    else if (frameskip_draw > 1)
-        frameskip_draw /= 2;
-    else if (frameskip_skip < 5)
-        frameskip_skip++;
-    else
-    {
-        frameskip_skip = 0;
-        frameskip_draw = 16;
-    }
-}
+    lcd_on = true;
 
-void decrease_frameskip(void)
-{
-    if (!frameskip_skip)
-    {
-        frameskip_skip = 5;
-        frameskip_draw = 1;
-    }
-    else if (frameskip_skip > 1)
-        frameskip_skip--;
-    else if (frameskip_draw < 16)
-        frameskip_draw *= 2;
-    else
-        frameskip_skip = 0;
+    frameskip_skip = 3;
+    frameskip_draw = 1;
+    frameskip_draw_i = 0;
+    frameskip_skip_i = 0;
+    skip_this = 0;
 }
